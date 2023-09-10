@@ -56,7 +56,9 @@ def get_rich_columns_info(conn,
                           source_table_name_with_schema: str,
                           number_of_rows_from_which_to_create_pattern: int,
                           columns_info: list = None,
-                          columns_to_include: list = None):
+                          columns_to_include: list = None,
+                          number_of_intervals: int = None,
+                          categorical_threshold: float = None):
     describe_query = f"DESCRIBE {source_table_name_with_schema};"
     if isinstance(conn, sqlalchemy.engine.base.Engine):
         with conn.begin() as c:
@@ -85,7 +87,9 @@ def get_rich_columns_info(conn,
             correct_column_values = get_correct_column_values(column_values=table_data_in_df[column_info.get_column_name()],
                                                               column_data_type=row['data_type'])
             rich_columns_info.append(get_rich_column_info(column_values=correct_column_values,
-                                                          column_info=column_info))
+                                                          column_info=column_info,
+                                                          number_of_intervals=number_of_intervals,
+                                                          categorical_threshold=categorical_threshold))
     return rich_columns_info
 
 

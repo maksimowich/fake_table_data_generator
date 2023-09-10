@@ -38,10 +38,12 @@ def get_output_data_type(data_type):
 
 
 def get_rich_column_info(column_values,
-                         column_info):
+                         column_info,
+                         number_of_intervals,
+                         categorical_threshold):
     column_data_type = column_info.get_data_type()
     column_name = column_info.get_column_name()
-    categorical_column_flag = (isinstance(column_info, CategoricalColumn) or (column_values.nunique() / column_values.count() < 0.2) or column_values.nunique() in [0, 1]) and \
+    categorical_column_flag = (isinstance(column_info, CategoricalColumn) or (column_values.nunique() / column_values.count() < categorical_threshold) or column_values.nunique() in [0, 1]) and \
         'decimal' not in column_data_type and type(column_info) in [Column, CategoricalColumn]
 
     if categorical_column_flag:
@@ -89,7 +91,8 @@ def get_rich_column_info(column_values,
                 column_info.set_generator(get_generator_for_nulls(column_name))
                 return column_info
             intervals, probabilities = get_info_for_continuous_column(column_values=column_values,
-                                                                      input_data_type=get_input_data_type(column_data_type))
+                                                                      input_data_type=get_input_data_type(column_data_type),
+                                                                      number_of_intervals=number_of_intervals)
             column_info.set_intervals(intervals)
             column_info.set_probabilities(probabilities)
         generator = get_generator_for_continuous_column(column_name=column_name,

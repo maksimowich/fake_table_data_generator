@@ -1,7 +1,7 @@
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from random import uniform
-# from rstr import xeger
+from rstr import xeger
 from pandas import Series
 # from pytz import timezone
 from numpy.random import choice
@@ -72,7 +72,7 @@ def get_generator_for_continuous_column(column_name,
 def get_generator_for_string_column(column_name, common_regex):
     output_size = yield
     while True:
-        list_of_fake_strings = ['-' for _ in range(output_size)]
+        list_of_fake_strings = [xeger(common_regex) for _ in range(output_size)]
         output_size = yield Series(list_of_fake_strings, name=column_name)
 
 

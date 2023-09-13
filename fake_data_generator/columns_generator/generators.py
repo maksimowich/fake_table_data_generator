@@ -5,6 +5,7 @@ from rstr import xeger
 from pandas import Series
 # from pytz import timezone
 from numpy.random import choice
+from faker import Faker
 
 
 def get_generator_for_nulls(column_name):
@@ -30,7 +31,6 @@ def float_to_decimal(precision):
         return lambda x: Decimal(str(round(x, precision)))
     else:
         return lambda x: Decimal(int(x))
-
 
 
 def float_to_date():
@@ -81,3 +81,27 @@ def get_generator_for_current_dttm_column(column_name):
     while True:
         fake_timestamps = [datetime.now().replace(microsecond=0) + timedelta(hours=3) for _ in range(output_size)]
         output_size = yield Series(fake_timestamps, name=column_name)
+
+
+def get_generator_for_fio_in_upper_case_column(column_name):
+    output_size = yield
+    faker = Faker('ru_RU')
+    while True:
+        fake_emails = [faker.name().upper() for _ in range(output_size)]
+        output_size = yield Series(fake_emails, name=column_name)
+
+
+def get_generator_for_fio_only_starting_with_upper_case_column(column_name):
+    output_size = yield
+    faker = Faker('ru_RU')
+    while True:
+        fake_emails = [faker.name() for _ in range(output_size)]
+        output_size = yield Series(fake_emails, name=column_name)
+
+
+def get_generator_for_email_column(column_name):
+    output_size = yield
+    faker = Faker()
+    while True:
+        fake_emails = [faker.email() for _ in range(output_size)]
+        output_size = yield Series(fake_emails, name=column_name)

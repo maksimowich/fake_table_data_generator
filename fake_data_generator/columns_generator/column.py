@@ -158,3 +158,48 @@ class CurrentTimestampColumn(Column):
             'type': 'CURRENT_TIMESTAMP',
         })
         return super_dict
+
+
+class FioInUpperCaseColumn(Column):
+    def __init__(self,
+                 column_name: str,
+                 data_type: str = None,
+                 generator: Generator = None):
+        super().__init__(column_name, data_type, generator)
+
+    def get_as_dict(self):
+        super_dict = super().get_as_dict()
+        super_dict[self.column_name].update({
+            'type': 'FIO_IN_UPPER_CASE',
+        })
+        return super_dict
+
+
+class FioOnlyStartingWithUpperCaseColumn(Column):
+    def __init__(self,
+                 column_name: str,
+                 data_type: str = None,
+                 generator: Generator = None):
+        super().__init__(column_name, data_type, generator)
+
+    def get_as_dict(self):
+        super_dict = super().get_as_dict()
+        super_dict[self.column_name].update({
+            'type': 'FIO_ONLY_STARTING_WITH_UPPER_CASE',
+        })
+        return super_dict
+
+
+class EmailColumn(Column):
+    def __init__(self,
+                 column_name: str,
+                 data_type: str = None,
+                 generator: Generator = None):
+        super().__init__(column_name, data_type, generator)
+
+    def get_as_dict(self):
+        super_dict = super().get_as_dict()
+        super_dict[self.column_name].update({
+            'type': 'EMAIL',
+        })
+        return super_dict

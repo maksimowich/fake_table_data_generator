@@ -5,3 +5,4 @@ scipy==1.7.3
 loguru==0.5.1
 pyspark==3.3.0
 sqlalchemy==1.4.15
+Faker==19.6.1

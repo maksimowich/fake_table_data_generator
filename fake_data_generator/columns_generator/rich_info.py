@@ -2,7 +2,8 @@ import re
 from datetime import datetime
 from loguru import logger
 from fake_data_generator.columns_generator.column import \
-    Column, CategoricalColumn, ContinuousColumn, StringColumn, CurrentTimestampColumn
+    Column, CategoricalColumn, ContinuousColumn, StringColumn, CurrentTimestampColumn, \
+    FioInUpperCaseColumn, FioOnlyStartingWithUpperCaseColumn, EmailColumn
 from fake_data_generator.columns_generator.info_for_columns import \
     get_info_for_categorical_column,\
     get_info_for_continuous_column,\
@@ -12,7 +13,10 @@ from fake_data_generator.columns_generator.generators import \
     get_generator_for_categorical_column,\
     get_generator_for_continuous_column, \
     get_generator_for_string_column, \
-    get_generator_for_current_dttm_column
+    get_generator_for_current_dttm_column, \
+    get_generator_for_fio_in_upper_case_column, \
+    get_generator_for_fio_only_starting_with_upper_case_column, \
+    get_generator_for_email_column
 
 
 def get_input_data_type(data_type):
@@ -35,6 +39,29 @@ def get_output_data_type(data_type):
         return 'date'
     elif 'timestamp' == data_type:
         return 'datetime'
+
+REGEX_FOR_FIO_IN_UPPER_CASE = r'[А-Я]{2,} [А-Я]{2,} [А-Я]{2,}\Z'
+REGEX_FOR_FIO_ONLY_STARTING_WITH_UPPER_CASE = r'[А-Я][а-я]+ [А-Я][а-я]+ [А-Я][а-я]+\Z'
+REGEX_FOR_EMAIL = r'[A-Za-z0-9_-]+@[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\Z'
+
+
+def get_string_column_class(strings):
+    matchings_cnt_fio_in_upper_case = 0
+    matchings_cnt_fio_only_starting_with_upper_case = 0
+    matchings_cnt_email = 0
+    for string in strings:
+        if re.match(REGEX_FOR_FIO_IN_UPPER_CASE, string):
+            matchings_cnt_fio_in_upper_case += 1
+        elif re.match(REGEX_FOR_FIO_ONLY_STARTING_WITH_UPPER_CASE, string):
+            matchings_cnt_fio_only_starting_with_upper_case += 1
+        elif re.match(REGEX_FOR_EMAIL, string):
+            matchings_cnt_email += 1
+    if matchings_cnt_fio_in_upper_case / len(strings) > 0.8:
+        return FioInUpperCaseColumn
+    elif matchings_cnt_fio_only_starting_with_upper_case / len(strings) > 0.8:
+        return FioOnlyStartingWithUpperCaseColumn
+    elif matchings_cnt_email / len(strings) > 0.8:
+        return EmailColumn
 
 
 def get_rich_column_info(column_values,
@@ -59,16 +86,25 @@ def get_rich_column_info(column_values,
                                                          probabilities=column_info.get_probabilities())
 
     elif column_data_type == 'string':
-        logger.info(f'Column "{column_name}" — STRING NON CATEGORICAL COLUMN')
         if isinstance(column_info, StringColumn) and column_info.get_string_copy_of() is not None:
+            logger.info(f'Column "{column_name}" — STRING NON CATEGORICAL COLUMN')
             return column_info
-        if not isinstance(column_info, StringColumn):
-            column_info = StringColumn(column_name=column_name, data_type=column_data_type)
-        if column_info.get_common_regex() is None:
-            common_regex = get_info_for_string_column(column_values.dropna())
-            column_info.set_common_regex(common_regex)
-        generator = get_generator_for_string_column(column_name=column_name,
-                                                    common_regex=column_info.get_common_regex())
+        detected_string_class = get_string_column_class(column_values.dropna())
+        if detected_string_class is not None and not isinstance(column_info, StringColumn):
+            column_info = detected_string_class(column_name=column_name, data_type=column_data_type)
+            if isinstance(FioInUpperCaseColumn, detected_string_class):
+                generator = get_generator_for_fio_in_upper_case_column(column_name)
+            elif isinstance(FioOnlyStartingWithUpperCaseColumn, detected_string_class):
+                generator = get_generator_for_fio_only_starting_with_upper_case_column(column_name)
+            elif isinstance(EmailColumn, detected_string_class):
+                generator = get_generator_for_email_column(column_name)
+        else:
+            if not isinstance(column_info, StringColumn):
+                column_info = StringColumn(column_name=column_name, data_type=column_data_type)
+            if column_info.get_common_regex() is None:
+                common_regex = get_info_for_string_column(column_values.dropna())
+                column_info.set_common_regex(common_regex)
+            generator = get_generator_for_string_column(column_name=column_name, common_regex=column_info.get_common_regex())
 
     elif isinstance(column_info, CurrentTimestampColumn):
         logger.info(f'Column "{column_name}" — CURRENT_TIMESTAMP COLUMN')
@@ -156,6 +192,15 @@ def get_columns_info_with_set_generators(rich_columns_info_dict):
 
         elif column_type == 'CURRENT_TIMESTAMP':
             generator = get_generator_for_current_dttm_column(column_name=column_name)
+
+        elif column_type == 'FIO_IN_UPPER_CASE':
+            generator = get_generator_for_fio_in_upper_case_column(column_name=column_name)
+
+        elif column_type == 'FIO_ONLY_STARTING_WITH_UPPER_CASE':
+            generator = get_generator_for_fio_only_starting_with_upper_case_column(column_name=column_name)
+
+        elif column_type == 'EMAIL':
+            generator = get_generator_for_email_column(column_name=column_name)
 
         column_info = Column(column_name=column_name, data_type=column_data_type)
         column_info.set_generator(generator)

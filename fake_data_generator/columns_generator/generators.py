@@ -26,7 +26,7 @@ def float_to_int():
     return int
 
 
-def float_to_decimal(precision):
+def float_to_decimal(precision=0):
     if precision != 0:
         return lambda x: Decimal(str(round(x, precision)))
     else:

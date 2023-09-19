@@ -31,13 +31,13 @@ def get_input_data_type(data_type):
 
 
 def get_output_data_type(data_type):
-    if 'decimal' in data_type:
+    if 'decimal' in data_type or 'numeric' in data_type:
         return 'decimal'
     elif 'int' in data_type:
         return 'int'
     elif 'date' == data_type:
         return 'date'
-    elif 'timestamp' == data_type:
+    elif 'timestamp' in data_type:
         return 'datetime'
 
 REGEX_FOR_FIO_IN_UPPER_CASE = r'[А-Я]{2,} [А-Я]{2,} [А-Я]{2,}\Z'
@@ -159,7 +159,7 @@ def get_columns_info_with_set_generators(rich_columns_info_dict):
             if column_data_type == 'date':
                 values = list(map(lambda x: datetime.strptime(x, "%Y-%m-%d").date() if isinstance(x, str) else x,
                                   column_info_dict['values']))
-            elif column_data_type == 'timestamp':
+            elif 'timestamp' in column_data_type:
                 values = list(map(lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S") if isinstance(x, str) else x,
                                   column_info_dict['values']))
             else:

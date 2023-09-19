@@ -3,13 +3,13 @@ from loguru import logger
 from fake_data_generator.sources_formats.helper_functions import get_rich_columns_info
 
 
-def generate_table_profile(conn,
-                           source_table_name_with_schema: str,
-                           output_table_profile_path: str,
-                           number_of_rows_from_which_to_create_pattern: int,
+def generate_table_profile(output_table_profile_path: str,
+                           conn=None,
+                           source_table_name_with_schema: str = None,
+                           number_of_rows_from_which_to_create_pattern: int = None,
                            columns_info: list = None,
                            columns_to_include: list = None,
-                           number_of_intervals=99,
+                           number_of_intervals=5,
                            categorical_threshold=0.2):
     rich_columns_info = get_rich_columns_info(conn,
                                               source_table_name_with_schema,

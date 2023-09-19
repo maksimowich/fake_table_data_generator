@@ -3,6 +3,7 @@ import sqlalchemy
 import re
 from copy import deepcopy
 from loguru import logger
+from numpy import int64
 from pandas import concat, to_datetime, Series
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DateType, TimestampType, DecimalType
 from fake_data_generator.columns_generator import get_rich_column_info, get_fake_data_for_insertion, Column
@@ -37,32 +38,45 @@ def get_correct_column_values(column_values: Series,
                               column_data_type: str):
     number_of_nulls = column_values.isnull().sum()
     if 'int' in column_data_type:
-        correct_column_values = concat([column_values.dropna().astype(int), Series([None] * number_of_nulls, dtype=object)])
+        correct_column_values = concat([column_values.dropna().astype(int64), Series([None] * number_of_nulls, dtype=object)])
         correct_column_values.name = column_values.name
         return correct_column_values
-    elif 'decimal' in column_data_type:
+    elif 'decimal' in column_data_type or 'numeric' in column_data_type:
         correct_column_values = concat([column_values.dropna().astype(float), Series([None] * number_of_nulls, dtype=float)])
         correct_column_values.name = column_values.name
         return correct_column_values
     elif column_data_type == 'date':
         return to_datetime(column_values).dt.date
-    elif column_data_type == 'timestamp':
+    elif 'timestamp' in column_data_type:
         return column_values.apply(lambda x: x.to_pydatetime())
     else:
         return column_values
 
 
-def get_rich_columns_info(conn,
-                          source_table_name_with_schema: str,
-                          number_of_rows_from_which_to_create_pattern: int,
+def get_rich_columns_info(conn=None,
+                          source_table_name_with_schema: str = None,
+                          number_of_rows_from_which_to_create_pattern: int = None,
                           columns_info: list = None,
                           columns_to_include: list = None,
                           number_of_intervals: int = None,
                           categorical_threshold: float = None):
-    describe_query = f"DESCRIBE {source_table_name_with_schema};"
+    if source_table_name_with_schema is None:
+        return columns_info
+
+    table_schema, table_name = source_table_name_with_schema.split('.')
+    if isinstance(conn, sqlalchemy.engine.base.Engine) and conn.name == 'postgresql':
+        describe_query = f'''
+            SELECT
+                column_name AS col_name, data_type,
+                character_maximum_length, numeric_precision, numeric_scale
+            FROM information_schema.columns
+            WHERE table_schema = '{table_schema}' AND table_name = '{table_name}';
+        '''
+    else:
+        describe_query = f"DESCRIBE {source_table_name_with_schema};"
+
     if isinstance(conn, sqlalchemy.engine.base.Engine):
-        with conn.begin() as c:
-            describe_data_in_df = pd.read_sql_query(describe_query, c).rename(columns={'name': 'col_name', 'type': 'data_type'})
+        describe_data_in_df = pd.read_sql_query(describe_query, conn).rename(columns={'name': 'col_name', 'type': 'data_type'})
     else:
         describe_data_in_df = conn.sql(describe_query).toPandas().rename(columns={'name': 'col_name', 'type': 'data_type'})
 
@@ -72,24 +86,29 @@ def get_rich_columns_info(conn,
                    f"FROM {source_table_name_with_schema} " \
                    f"ORDER BY RANDOM() {limit_clause};"
     if isinstance(conn, sqlalchemy.engine.base.Engine):
-        with conn.begin() as c:
-            table_data_in_df = pd.read_sql_query(select_query, c)
+        table_data_in_df = pd.read_sql_query(select_query, conn)
     else:
         table_data_in_df = conn.sql(select_query).toPandas()
     logger.info(f'Select-query result was read into Dataframe. Number of rows fetched is {table_data_in_df.shape[0]}.')
+
+    if table_data_in_df.empty:
+        logger.info(f'Specified table is empty. Only column names and column data types will be loaded in profile.')
 
     column_name_to_column_info_in_dict = {column_info.get_column_name(): column_info for column_info in deepcopy(columns_info) or []}
     rich_columns_info = []
     for _, row in describe_data_in_df.iterrows():
         if columns_to_include is None or row['col_name'] in columns_to_include:
             column_info = column_name_to_column_info_in_dict.get(row['col_name'], Column(column_name=row['col_name']))
-            column_info.set_data_type(row['data_type'])
-            correct_column_values = get_correct_column_values(column_values=table_data_in_df[column_info.get_column_name()],
-                                                              column_data_type=row['data_type'])
-            rich_columns_info.append(get_rich_column_info(column_values=correct_column_values,
-                                                          column_info=column_info,
-                                                          number_of_intervals=number_of_intervals,
-                                                          categorical_threshold=categorical_threshold))
+            column_info.set_data_type(row['data_type'], row['character_maximum_length'], row['numeric_precision'], row['numeric_scale'])
+            if not table_data_in_df.empty:
+                correct_column_values = get_correct_column_values(column_values=table_data_in_df[column_info.get_column_name()],
+                                                                  column_data_type=column_info.get_data_type())
+                rich_columns_info.append(get_rich_column_info(column_values=correct_column_values,
+                                                              column_info=column_info,
+                                                              number_of_intervals=number_of_intervals,
+                                                              categorical_threshold=categorical_threshold))
+            else:
+                rich_columns_info.append(column_info)
     return rich_columns_info
 
 

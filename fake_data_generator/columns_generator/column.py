@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 from typing import Generator
 from pandas import NaT
 
@@ -21,8 +23,16 @@ class Column:
     def get_generator(self):
         return self.generator
 
-    def set_data_type(self, data_type):
-        self.data_type = data_type
+    def set_data_type(self, data_type, character_maximum_length=None, numeric_precision=None, numeric_scale=None):
+        if 'numeric' in data_type and not pd.isnull(numeric_scale):
+            self.data_type = f'decimal({int(numeric_precision)},{int(numeric_scale)})'
+        elif 'character varying' in data_type:
+            if not pd.isnull(character_maximum_length):
+                self.data_type = f'varchar({int(character_maximum_length)}'
+            else:
+                self.data_type = 'varchar'
+        else:
+            self.data_type = data_type
 
     def get_data_type(self):
         return self.data_type
@@ -46,7 +56,7 @@ class CategoricalColumn(Column):
         super_dict = super().get_as_dict()
         if self.data_type == 'date':
             values = list(map(lambda x: x.strftime("%Y-%m-%d") if x is not NaT else None, self.values))
-        elif self.data_type == 'timestamp':
+        elif 'timestamp' in self.data_type:
             values = list(map(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if x is not NaT else None, self.values))
         else:
             values = self.values

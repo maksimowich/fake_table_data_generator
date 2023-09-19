@@ -20,13 +20,13 @@ from fake_data_generator.columns_generator.generators import \
 
 
 def get_input_data_type(data_type):
-    if 'decimal' in data_type:
+    if 'decimal' in data_type or 'numeric' in data_type:
         return 'float'
     elif 'int' in data_type:
         return 'int'
     elif 'date' == data_type:
         return 'date'
-    elif 'timestamp' == data_type:
+    elif 'timestamp' in data_type:
         return 'datetime'
 
 
@@ -42,7 +42,7 @@ def get_output_data_type(data_type):
 
 REGEX_FOR_FIO_IN_UPPER_CASE = r'[А-Я]{2,} [А-Я]{2,} [А-Я]{2,}\Z'
 REGEX_FOR_FIO_ONLY_STARTING_WITH_UPPER_CASE = r'[А-Я][а-я]+ [А-Я][а-я]+ [А-Я][а-я]+\Z'
-REGEX_FOR_EMAIL = r'[A-Za-z0-9_-]+@[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\Z'
+REGEX_FOR_EMAIL = r'[.A-Za-z0-9_-]+@[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\Z'
 
 
 def get_string_column_class(strings):
@@ -71,7 +71,7 @@ def get_rich_column_info(column_values,
     column_data_type = column_info.get_data_type()
     column_name = column_info.get_column_name()
     categorical_column_flag = (isinstance(column_info, CategoricalColumn) or (column_values.nunique() / column_values.count() < categorical_threshold) or column_values.nunique() in [0, 1]) and \
-        'decimal' not in column_data_type and type(column_info) in [Column, CategoricalColumn]
+        'decimal' not in column_data_type and 'numeric' not in column_data_type and type(column_info) in [Column, CategoricalColumn]
 
     if categorical_column_flag:
         logger.info(f'Column "{column_name}" — CATEGORICAL COLUMN')
@@ -85,20 +85,28 @@ def get_rich_column_info(column_values,
                                                          values=column_info.get_values(),
                                                          probabilities=column_info.get_probabilities())
 
-    elif column_data_type == 'string':
+    elif column_data_type == 'string' or 'varchar' in column_data_type:
         if isinstance(column_info, StringColumn) and column_info.get_string_copy_of() is not None:
             logger.info(f'Column "{column_name}" — STRING NON CATEGORICAL COLUMN')
             return column_info
-        detected_string_class = get_string_column_class(column_values.dropna())
-        if detected_string_class is not None and not isinstance(column_info, StringColumn):
-            column_info = detected_string_class(column_name=column_name, data_type=column_data_type)
-            if isinstance(FioInUpperCaseColumn, detected_string_class):
-                generator = get_generator_for_fio_in_upper_case_column(column_name)
-            elif isinstance(FioOnlyStartingWithUpperCaseColumn, detected_string_class):
-                generator = get_generator_for_fio_only_starting_with_upper_case_column(column_name)
-            elif isinstance(EmailColumn, detected_string_class):
-                generator = get_generator_for_email_column(column_name)
-        else:
+
+        detected_string_class = None
+        if not isinstance(column_info, StringColumn):
+            detected_string_class = get_string_column_class(column_values.dropna())
+            if detected_string_class is not None:
+                column_info = detected_string_class(column_name=column_name, data_type=column_data_type)
+                if FioInUpperCaseColumn == detected_string_class:
+                    logger.info(f'Column "{column_name}" — FIO_IN_UPPER_CASE')
+                    generator = get_generator_for_fio_in_upper_case_column(column_name)
+                elif FioOnlyStartingWithUpperCaseColumn == detected_string_class:
+                    logger.info(f'Column "{column_name}" — FIO_ONLY_STARTING_WITH_UPPER_CASE')
+                    generator = get_generator_for_fio_only_starting_with_upper_case_column(column_name)
+                elif EmailColumn == detected_string_class:
+                    logger.info(f'Column "{column_name}" — EMAIL')
+                    generator = get_generator_for_email_column(column_name)
+
+        if detected_string_class is None:
+            logger.info(f'Column "{column_name}" — STRING NON CATEGORICAL COLUMN')
             if not isinstance(column_info, StringColumn):
                 column_info = StringColumn(column_name=column_name, data_type=column_data_type)
             if column_info.get_common_regex() is None:

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fake_table_data_generator',
-    version="1.0.10",
+    version="1.0.26",
     packages=find_packages(),
     install_requires=[
         'rstr==3.2.1',

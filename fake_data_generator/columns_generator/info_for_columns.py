@@ -29,7 +29,7 @@ CONVERTERS_TO_FLOAT = {
 def get_info_for_continuous_column(column_values, input_data_type: str, number_of_intervals: int):
     float_column_values_without_null = column_values.dropna().apply(CONVERTERS_TO_FLOAT[input_data_type])
     kde = gaussian_kde(float_column_values_without_null.values)
-    x = linspace(min(float_column_values_without_null), max(float_column_values_without_null), num=number_of_intervals)
+    x = linspace(min(float_column_values_without_null), max(float_column_values_without_null), num=(number_of_intervals + 1))
     intervals = []
     probabilities = []
     for index, value in enumerate(x[:-1]):
@@ -37,7 +37,8 @@ def get_info_for_continuous_column(column_values, input_data_type: str, number_o
         probability = kde.integrate_box_1d(*interval)
         intervals.append(interval)
         probabilities.append(probability)
-    return intervals, probabilities
+    k = 1 / sum(probabilities)
+    return intervals, list(map(lambda p: p * k, probabilities))
 
 
 def get_info_for_string_column(strings) -> str:

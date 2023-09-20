@@ -11,6 +11,8 @@ class Column:
                  generator: Generator = None):
         self.column_name = column_name
         self.data_type = data_type
+        if generator is not None:
+            next(generator)
         self.generator = generator
 
     def get_as_dict(self):
@@ -23,16 +25,8 @@ class Column:
     def get_generator(self):
         return self.generator
 
-    def set_data_type(self, data_type, character_maximum_length=None, numeric_precision=None, numeric_scale=None):
-        if 'numeric' in data_type and not pd.isnull(numeric_scale):
-            self.data_type = f'decimal({int(numeric_precision)},{int(numeric_scale)})'
-        elif 'character varying' in data_type:
-            if not pd.isnull(character_maximum_length):
-                self.data_type = f'varchar({int(character_maximum_length)}'
-            else:
-                self.data_type = 'varchar'
-        else:
-            self.data_type = data_type
+    def set_data_type(self, data_type):
+        self.data_type = data_type
 
     def get_data_type(self):
         return self.data_type
@@ -122,31 +116,22 @@ class ContinuousColumn(Column):
         return self.date_flag
 
 
-class StringColumn(Column):
+class StringFromRegexColumn(Column):
     def __init__(self,
                  column_name: str,
                  data_type: str = None,
                  generator: Generator = None,
-                 common_regex: str = None,
-                 string_copy_of: str = None):
+                 common_regex: str = None):
         super().__init__(column_name, data_type, generator)
         self.common_regex = common_regex
-        self.string_copy_of = string_copy_of
 
     def get_as_dict(self):
         super_dict = super().get_as_dict()
         super_dict[self.column_name].update({
-            'type': 'STRING',
+            'type': 'STRING_FROM_REGEX',
             'common_regex': self.common_regex,
-            'string_copy_of': self.string_copy_of,
         })
         return super_dict
-
-    def set_string_copy_of(self, string_copy_of):
-        self.string_copy_of = string_copy_of
-
-    def get_string_copy_of(self):
-        return self.string_copy_of
 
     def set_common_regex(self, common_regex):
         self.common_regex = common_regex

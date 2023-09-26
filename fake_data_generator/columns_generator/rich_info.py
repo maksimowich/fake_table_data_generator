@@ -148,6 +148,8 @@ def get_columns_info_with_set_generators(rich_columns_info_dict):
     for column_name, column_info_dict in rich_columns_info_dict.items():
         column_type = column_info_dict.get('type')
         column_data_type = column_info_dict.get('data_type')
+        if column_type == 'CUSTOM_COLUMN':
+            continue
         generator = None
         if column_type == 'CATEGORICAL':
             if column_data_type == 'date':

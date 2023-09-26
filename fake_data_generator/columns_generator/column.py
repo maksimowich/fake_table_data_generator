@@ -16,7 +16,7 @@ class Column:
         self.generator = generator
 
     def get_as_dict(self):
-        return {self.column_name: {'data_type': self.data_type}}
+        return {self.column_name: {'data_type': self.data_type, 'type': 'CUSTOM_COLUMN'}}
 
     def set_generator(self, generator):
         next(generator)
@@ -198,3 +198,18 @@ class EmailColumn(Column):
             'type': 'EMAIL',
         })
         return super_dict
+
+
+class MultipleColumns():
+    def __init__(self,
+                 columns: list,
+                 generator: Generator):
+        self.columns = columns
+        next(generator)
+        self.generator = generator
+
+    def get_columns(self):
+        return self.columns
+
+    def get_generator(self):
+        return self.generator

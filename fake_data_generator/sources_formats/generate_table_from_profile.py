@@ -1,6 +1,6 @@
 import json
 from fake_data_generator.columns_generator import get_columns_info_with_set_generators
-from fake_data_generator.columns_generator.column import Column
+from fake_data_generator.columns_generator.column import Column, MultipleColumns
 from fake_data_generator.sources_formats.helper_functions import \
     get_create_query, create_table_if_not_exists, execute_insertion
 
@@ -18,9 +18,13 @@ def generate_table_from_profile(conn,
 
     columns_with_generators_as_parameter = []
     for column_info in columns_info or []:
-        if type(column_info) == Column and column_info.get_generator() is not None:
+        if type(column_info) == MultipleColumns:
+            for col_info in column_info.get_columns():
+                rich_columns_info_dict.update(col_info.get_as_dict())
             columns_with_generators_as_parameter.append(column_info)
         else:
+            if type(column_info) == Column and column_info.get_generator() is not None:
+                columns_with_generators_as_parameter.append(column_info)
             rich_columns_info_dict.update(column_info.get_as_dict())
 
     create_table_if_not_exists(conn=conn,

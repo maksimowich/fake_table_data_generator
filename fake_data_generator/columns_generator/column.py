@@ -200,6 +200,42 @@ class EmailColumn(Column):
         return super_dict
 
 
+class IncrementalIDColumn(Column):
+    def __init__(self,
+                 column_name: str,
+                 data_type: str = None,
+                 generator: Generator = None):
+        super().__init__(column_name, data_type, generator)
+
+    def get_as_dict(self):
+        super_dict = super().get_as_dict()
+        super_dict[self.column_name].update({
+            'type': 'INCREMENTAL_ID',
+        })
+        return super_dict
+
+
+class ForeignKeyColumn(Column):
+    def __init__(self,
+                 column_name: str,
+                 foreign_key_table_name: str,
+                 foreign_key_column_name: str,
+                 data_type: str = None,
+                 generator: Generator = None):
+        super().__init__(column_name, data_type, generator)
+        self.foreign_key_table_name = foreign_key_table_name
+        self.foreign_key_column_name = foreign_key_column_name
+
+    def get_as_dict(self):
+        super_dict = super().get_as_dict()
+        super_dict[self.column_name].update({
+            'type': 'FOREIGN_KEY',
+            'foreign_key_table_name': self.foreign_key_table_name,
+            'foreign_key_column_name': self.foreign_key_column_name,
+        })
+        return super_dict
+
+
 class MultipleColumns():
     def __init__(self,
                  columns: list,

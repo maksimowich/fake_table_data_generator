@@ -31,6 +31,6 @@ def generate_table_from_profile(conn,
                                dest_table_name_with_schema=dest_table_name_with_schema,
                                create_query=get_create_query(dest_table_name_with_schema, rich_columns_info_dict))
 
-    columns_with_set_generators = get_columns_info_with_set_generators(rich_columns_info_dict)
+    columns_with_set_generators = get_columns_info_with_set_generators(rich_columns_info_dict, conn, dest_table_name_with_schema)
     execute_insertion(conn, dest_table_name_with_schema, number_of_rows_to_insert,
                       columns_with_set_generators + columns_with_generators_as_parameter, batch_size)

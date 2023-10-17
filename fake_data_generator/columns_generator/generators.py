@@ -1,3 +1,5 @@
+import pandas as pd
+import sqlalchemy
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from random import uniform
@@ -104,3 +106,32 @@ def get_generator_for_email_column():
     while True:
         fake_emails = [faker.email() for _ in range(output_size)]
         output_size = yield Series(fake_emails)
+
+
+def get_generator_for_incremental_id_column(conn, table_name, incremental_id_column_name):
+    output_size = yield
+    if isinstance(conn, sqlalchemy.engine.base.Engine) and conn.name == 'postgresql':
+        current_max_id_df = pd.read_sql_query(f'SELECT MAX({incremental_id_column_name}) AS id FROM {table_name}', conn)
+    else:
+        current_max_id_df = pd.DataFrame({'id': [None]})
+    if current_max_id_df['id'][0] is not None:
+        start_id = current_max_id_df['id'][0] + 1
+    else:
+        start_id = 1
+    while True:
+        output_size = yield Series([i for i in range(start_id, start_id + output_size)])
+        start_id += output_size
+
+
+def get_generator_for_foreign_key_column(conn, foreign_key_table_name, foreign_key_column_name):
+    output_size = yield
+    while True:
+        if isinstance(conn, sqlalchemy.engine.base.Engine) and conn.name == 'postgresql':
+            fk_df = pd.read_sql_query(
+                f'SELECT {foreign_key_column_name} AS fk '
+                f'FROM {foreign_key_table_name} '
+                f'ORDER BY RANDOM() LIMIT {output_size}', conn
+            )
+        else:
+            fk_df = pd.DataFrame({'fk': [None] * output_size})
+        output_size = yield fk_df['fk'].sample(n=output_size, replace=True).reset_index(drop=True)

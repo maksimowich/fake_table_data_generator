@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='fake_table_data_generator',
-    version="1.2.5",
+    name='fake_table_data_generator_bank',
+    version="0.0.0",
     packages=find_packages(),
     install_requires=[
-        'rstr==3.2.1',
+        'rstr==3.0.0',
         'pandas==1.2.4',
         "numpy==1.21.5",
         "scipy==1.7.3",
@@ -15,7 +15,7 @@ setup(
         "Faker==19.6.1",
     ],
     author='Alexander Maksimovich',
-    python_requires=">=3.7.1,<3.11",
+    python_requires="==3.6.5",
     author_email='cahr2001@mail.com',
     description='Fake data generator',
     long_description=open('README.md').read(),

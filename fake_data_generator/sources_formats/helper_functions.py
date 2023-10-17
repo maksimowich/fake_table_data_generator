@@ -145,7 +145,8 @@ def create_table_if_not_exists(conn,
                        f'FROM {source_table_name_with_schema} WHERE 1<>1;'
     if isinstance(conn, sqlalchemy.engine.base.Engine):
         with conn.begin() as c:
-            c.execute(create_query)
+            c.execute(sqlalchemy.text(create_query))
+            logger.info(f'Table {dest_table_name_with_schema} was created')
     else:
         conn.sql(create_query)
 

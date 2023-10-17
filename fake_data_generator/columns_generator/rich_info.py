@@ -16,7 +16,9 @@ from fake_data_generator.columns_generator.generators import \
     get_generator_for_current_dttm_column, \
     get_generator_for_fio_in_upper_case_column, \
     get_generator_for_fio_only_starting_with_upper_case_column, \
-    get_generator_for_email_column
+    get_generator_for_email_column, \
+    get_generator_for_incremental_id_column, \
+    get_generator_for_foreign_key_column
 
 
 def get_input_data_type(data_type):
@@ -143,7 +145,7 @@ def get_rich_column_info(column_values,
     return column_info
 
 
-def get_columns_info_with_set_generators(rich_columns_info_dict):
+def get_columns_info_with_set_generators(rich_columns_info_dict, conn=None, table_name=None):
     columns_info_with_set_generators = []
     for column_name, column_info_dict in rich_columns_info_dict.items():
         column_type = column_info_dict.get('type')
@@ -196,6 +198,15 @@ def get_columns_info_with_set_generators(rich_columns_info_dict):
 
         elif column_type == 'EMAIL':
             generator = get_generator_for_email_column()
+
+        elif column_type == 'INCREMENTAL_ID':
+            generator = get_generator_for_incremental_id_column(conn=conn,
+                                                                table_name=table_name,
+                                                                incremental_id_column_name=column_name)
+        elif column_type == 'FOREIGN_KEY':
+            foreign_key_table_name = column_info_dict.get('foreign_key_table_name')
+            foreign_key_column_name = column_info_dict.get('foreign_key_column_name')
+            generator = get_generator_for_foreign_key_column(conn, foreign_key_table_name, foreign_key_column_name)
 
         column_info = Column(column_name=column_name, data_type=column_data_type)
         column_info.set_generator(generator)
